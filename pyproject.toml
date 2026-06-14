@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sery-sdk"
+version = "0.1.0"
+description = "Python client for Sery — query your private data mesh by sery:// address."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Sery" }]
+keywords = ["sery", "data", "sql", "duckdb", "data-mesh"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Database",
+]
+dependencies = ["httpx>=0.24"]
+
+[project.optional-dependencies]
+pandas = ["pandas>=1.3"]
+dev = ["pytest>=7", "pytest-asyncio>=0.21", "pandas>=1.3"]
+
+[project.urls]
+Homepage = "https://sery.ai"
+Documentation = "https://github.com/seryai/sery-sdk-python"
+Source = "https://github.com/seryai/sery-sdk-python"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sery"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
