@@ -1,0 +1,65 @@
+name: Publish to PyPI
+
+# Fires when you push a version tag, e.g. `git tag v0.1.1 && git push --tags`.
+# Uses PyPI Trusted Publishing (OIDC) — no API tokens stored in the repo.
+#
+# One-time setup on PyPI (https://pypi.org/manage/project/sery/settings/publishing/):
+#   Add a trusted publisher →
+#     Owner:        seryai
+#     Repository:   sery-sdk-python
+#     Workflow:     publish.yml
+#     Environment:  pypi
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      # Guard against tag/version drift: the v<X.Y.Z> tag must match the
+      # version in pyproject.toml, or the release fails loudly here rather
+      # than publishing a mislabelled artifact.
+      - name: Verify tag matches package version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(python -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")"
+          echo "tag=$TAG  pyproject=$PKG"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag v$TAG does not match pyproject version $PKG"
+            exit 1
+          fi
+
+      - name: Build sdist + wheel
+        run: |
+          python -m pip install --upgrade build
+          python -m build
+
+      - name: Validate metadata
+        run: |
+          python -m pip install --upgrade twine
+          twine check dist/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # required for OIDC trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
