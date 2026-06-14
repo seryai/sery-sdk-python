@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sery-sdk"
+name = "sery"
 version = "0.1.0"
 description = "Python client for Sery — query your private data mesh by sery:// address."
 readme = "README.md"

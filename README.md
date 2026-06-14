@@ -3,8 +3,8 @@
 Query your private data mesh by **`sery://` address** — one SQL statement, run on whichever machine holds the data. Raw data never moves through Sery; only result rows come back.
 
 ```bash
-pip install sery-sdk          # core
-pip install sery-sdk[pandas]  # + .to_pandas()
+pip install sery          # core
+pip install sery[pandas]  # + .to_pandas()
 ```
 
 ## Quick start

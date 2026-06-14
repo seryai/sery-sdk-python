@@ -40,7 +40,7 @@ class QueryResult:
     def to_pandas(self):
         """Return the result as a pandas DataFrame.
 
-        pandas is an optional dependency — install ``sery-sdk[pandas]`` (or
+        pandas is an optional dependency — install ``sery[pandas]`` (or
         just ``pip install pandas``) to use this.
         """
         try:

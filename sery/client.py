@@ -112,6 +112,6 @@ def _version() -> str:
     try:
         from importlib.metadata import version
 
-        return version("sery-sdk")
+        return version("sery")
     except Exception:  # noqa: BLE001 - not installed as a dist (editable/source)
         return "0.0.0"
