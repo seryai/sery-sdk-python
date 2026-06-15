@@ -26,7 +26,7 @@ def _client(handler):
 
 def test_query_returns_result():
     def handler(request: httpx.Request) -> httpx.Response:
-        assert request.url.path == "/public/v1/query"
+        assert request.url.path == "/query"
         assert request.headers["Authorization"] == "Bearer sery_test"
         body = json.loads(request.content)
         assert body["sql"].startswith("SELECT")
@@ -176,7 +176,7 @@ def test_query_unavailable_carries_failures():
 
 def test_catalog_parses_sources():
     def handler(request):
-        assert request.url.path == "/public/v1/catalog"
+        assert request.url.path == "/catalog"
         return httpx.Response(
             200,
             json={

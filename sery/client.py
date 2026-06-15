@@ -96,7 +96,7 @@ class Client:
         """
         data = self._request(
             "POST",
-            "/public/v1/query",
+            "/query",
             json={"sql": sql, "max_rows": max_rows},
         )
         return QueryResult._from_json(data)
@@ -104,7 +104,7 @@ class Client:
     def catalog(self) -> List[CatalogSource]:
         """List the workspace's addressable sources, each with its sery://
         address and column schema."""
-        data = self._request("GET", "/public/v1/catalog")
+        data = self._request("GET", "/catalog")
         return [CatalogSource._from_json(s) for s in data.get("sources", [])]
 
 

@@ -1,6 +1,6 @@
 """Typed exceptions mirroring the data.sery.ai error envelope.
 
-Each HTTP error from POST /public/v1/query maps to a specific class so callers
+Each HTTP error from POST /query maps to a specific class so callers
 can branch on failure mode instead of parsing status codes.
 """
 
