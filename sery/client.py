@@ -20,7 +20,14 @@ from typing import List, Optional
 import httpx
 
 from sery.errors import raise_for_response
-from sery.models import CatalogSource, QueryResult
+from sery.models import (
+    CatalogSource,
+    ProductManifest,
+    ProductQueryResult,
+    ProductSchema,
+    ProductSearchResult,
+    QueryResult,
+)
 
 DEFAULT_BASE_URL = "https://data.sery.ai"
 _DEFAULT_TIMEOUT = 120.0
@@ -71,14 +78,14 @@ class Client:
 
     # ── requests ───────────────────────────────────────────────────────
 
-    def _request(self, method: str, path: str, **kwargs) -> dict:
+    def _request(self, method: str, path: str, *, product: bool = False, **kwargs) -> dict:
         resp = self._client.request(method, path, **kwargs)
         if resp.status_code // 100 != 2:
             try:
                 body = resp.json()
             except Exception:  # noqa: BLE001 - non-JSON error body
                 body = resp.text
-            raise_for_response(resp.status_code, body)
+            raise_for_response(resp.status_code, body, product=product)
         return resp.json()
 
     # ── API ────────────────────────────────────────────────────────────
@@ -106,6 +113,45 @@ class Client:
         address and column schema."""
         data = self._request("GET", "/catalog")
         return [CatalogSource._from_json(s) for s in data.get("sources", [])]
+
+    # ── Marketplace products ───────────────────────────────────────────
+    #
+    # Products are datasets other publishers sell. They are addressed by
+    # hash, served from Sery's storage (no machine to be offline), and paid
+    # per call from the key's balance. Authenticate with a product key
+    # (``sdata_…``) minted at POST /v1/products/{hash}/api-keys — the same
+    # ``api_key`` argument; the client does not care which kind you pass.
+
+    def product_schema(self, product_hash: str) -> ProductSchema:
+        """Tables and columns a product sells. Free. Read this before
+        :meth:`query_product`."""
+        data = self._request("GET", f"/product/{product_hash}/schema", product=True)
+        return ProductSchema._from_json(data)
+
+    def query_product(self, product_hash: str, sql: str) -> ProductQueryResult:
+        """Run SQL over a product's tables. Reference tables by name, e.g.
+        ``SELECT city, COUNT(*) FROM "catchments" GROUP BY 1`` — there are
+        no file paths. Costs the product's price per call.
+
+        Raises InsufficientTokens (402), ProductUnavailable (409),
+        ProductNotFound (404), QueryError (400) or AuthError (401).
+        """
+        data = self._request("POST", f"/product/{product_hash}/query", product=True, json={"sql": sql})
+        return ProductQueryResult._from_json(data)
+
+    def search_product(self, product_hash: str, query: str, *, limit: int = 5) -> ProductSearchResult:
+        """Semantic search over a document product. Returns ranked passages
+        with citations, never the documents. Charged only when there are
+        hits."""
+        data = self._request(
+            "POST", f"/product/{product_hash}/search", product=True, json={"query": query, "limit": limit}
+        )
+        return ProductSearchResult._from_json(data)
+
+    def product_documents(self, product_hash: str) -> ProductManifest:
+        """Shape of a document product — counts, titles, sample passages. Free."""
+        data = self._request("GET", f"/product/{product_hash}/documents", product=True)
+        return ProductManifest._from_json(data)
 
 
 def _version() -> str:

@@ -11,12 +11,26 @@ from sery.errors import (
     APIError,
     AuthError,
     CrossMachineJoinUnsupported,
+    InsufficientTokens,
     MachineNotFound,
     MachinesUnavailable,
+    ProductNotFound,
+    ProductUnavailable,
     QueryError,
     SeryError,
 )
-from sery.models import CatalogColumn, CatalogSource, QueryResult
+from sery.models import (
+    CatalogColumn,
+    CatalogSource,
+    ProductColumn,
+    ProductManifest,
+    ProductQueryResult,
+    ProductSchema,
+    ProductSearchHit,
+    ProductSearchResult,
+    ProductTable,
+    QueryResult,
+)
 
 __all__ = [
     "Client",
@@ -24,6 +38,13 @@ __all__ = [
     "QueryResult",
     "CatalogSource",
     "CatalogColumn",
+    "ProductSchema",
+    "ProductTable",
+    "ProductColumn",
+    "ProductQueryResult",
+    "ProductSearchHit",
+    "ProductSearchResult",
+    "ProductManifest",
     # errors
     "SeryError",
     "AuthError",
@@ -32,7 +53,10 @@ __all__ = [
     "AmbiguousMachine",
     "CrossMachineJoinUnsupported",
     "MachinesUnavailable",
+    "InsufficientTokens",
+    "ProductNotFound",
+    "ProductUnavailable",
     "APIError",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
