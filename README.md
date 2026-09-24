@@ -58,6 +58,31 @@ result.warnings         # human-readable warnings to surface
 > When `incomplete` is `True`, one or more machines were offline — check
 > `warnings` before trusting an aggregate (a SUM/COUNT may undercount).
 
+## Marketplace products
+
+Products are datasets other publishers sell on Sery. They are addressed by hash,
+served from Sery's storage (nothing to be offline), and paid per call from your
+token balance. Mint a product key once — `POST https://api.sery.ai/v1/products/{hash}/api-keys`
+while signed in — and pass it as `api_key`.
+
+```python
+buyer = sery.Client(api_key="sdata_...")
+
+schema = buyer.product_schema("abc123def456")
+print([t.table for t in schema.tables])  # ['catchments']
+
+# Tables are referenced by name — there are no file paths.
+df = buyer.query_product("abc123def456", 'SELECT city, COUNT(*) AS n FROM "catchments" GROUP BY 1').to_pandas()
+
+# Document products: ranked passages with citations, never the files.
+for hit in buyer.search_product("doc789", "what does it say about zoning?", limit=5):
+    print(hit.title, hit.page, hit.snippet)
+```
+
+Product errors: `InsufficientTokens` (402), `ProductNotFound` (404),
+`ProductUnavailable` (409 — nothing published yet), `QueryError` (400 — unknown
+table or non-SELECT). A search with no hits is free (`tokens_spent == 0`).
+
 ## Errors
 
 Every failure is a typed exception (`sery.errors`):

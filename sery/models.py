@@ -96,3 +96,159 @@ class CatalogSource:
             ],
             description=data.get("description"),
         )
+
+
+# ── Products (marketplace) ─────────────────────────────────────────────
+
+
+@dataclass
+class ProductColumn:
+    name: str
+    type: str
+    nullable: bool = True
+
+
+@dataclass
+class ProductTable:
+    """One table a product sells. Reference it by ``table`` in
+    ``client.query_product(...)``."""
+
+    table: str
+    columns: List[ProductColumn]
+    row_count_estimate: Optional[int]
+    size_bytes: int
+    snapshot_at: Optional[str]
+    description: Optional[str]
+
+    @classmethod
+    def _from_json(cls, d: dict) -> "ProductTable":
+        return cls(
+            table=d.get("table", ""),
+            columns=[
+                ProductColumn(name=c.get("name", ""), type=c.get("type", ""), nullable=c.get("nullable", True))
+                for c in d.get("columns", [])
+            ],
+            row_count_estimate=d.get("row_count_estimate"),
+            size_bytes=d.get("size_bytes", 0),
+            snapshot_at=d.get("snapshot_at"),
+            description=d.get("description"),
+        )
+
+
+@dataclass
+class ProductSchema:
+    """Tables and columns a product sells. Free to read."""
+
+    hash: str
+    name: str
+    kind: str  # "tabular" | "document"
+    price_per_call: int
+    tables: List[ProductTable]
+
+    @classmethod
+    def _from_json(cls, d: dict) -> "ProductSchema":
+        return cls(
+            hash=d.get("hash", ""),
+            name=d.get("name", ""),
+            kind=d.get("kind", "tabular"),
+            price_per_call=d.get("price_per_call", 0),
+            tables=[ProductTable._from_json(t) for t in d.get("tables", [])],
+        )
+
+
+@dataclass
+class ProductQueryResult:
+    """The outcome of ``client.query_product(...)``."""
+
+    columns: List[str]
+    rows: List[List[Any]]
+    row_count: int
+    truncated: bool
+    tokens_spent: int
+
+    @classmethod
+    def _from_json(cls, d: dict) -> "ProductQueryResult":
+        rows = d.get("rows", [])
+        return cls(
+            columns=d.get("columns", []),
+            rows=rows,
+            row_count=d.get("row_count", len(rows)),
+            truncated=d.get("truncated", False),
+            tokens_spent=d.get("tokens_spent", 0),
+        )
+
+    def to_pandas(self):
+        try:
+            import pandas as pd
+        except ImportError as exc:  # pragma: no cover - import guard
+            raise ImportError("to_pandas() needs pandas — `pip install sery[pandas]`") from exc
+        return pd.DataFrame(self.rows, columns=self.columns)
+
+    def __iter__(self):
+        for row in self.rows:
+            yield dict(zip(self.columns, row))
+
+    def __len__(self) -> int:
+        return self.row_count
+
+
+@dataclass
+class ProductSearchHit:
+    """One passage from a document product. Never a document."""
+
+    doc_id: str
+    title: Optional[str]
+    page: Optional[int]
+    snippet: str
+    score: float
+
+
+@dataclass
+class ProductSearchResult:
+    hits: List[ProductSearchHit]
+    tokens_spent: int  # 0 when nothing matched — zero-hit searches are free
+
+    @classmethod
+    def _from_json(cls, d: dict) -> "ProductSearchResult":
+        return cls(
+            hits=[
+                ProductSearchHit(
+                    doc_id=h.get("doc_id", ""),
+                    title=h.get("title"),
+                    page=h.get("page"),
+                    snippet=h.get("snippet", ""),
+                    score=float(h.get("score", 0.0)),
+                )
+                for h in d.get("hits", [])
+            ],
+            tokens_spent=d.get("tokens_spent", 0),
+        )
+
+    def __iter__(self):
+        return iter(self.hits)
+
+    def __len__(self) -> int:
+        return len(self.hits)
+
+
+@dataclass
+class ProductManifest:
+    """Shape of a document product. Free to read."""
+
+    documents: int
+    passages: int
+    has_page_citations: bool
+    titles: List[dict]
+    sample_passages: List[str]
+    price_per_search: int
+
+    @classmethod
+    def _from_json(cls, d: dict) -> "ProductManifest":
+        return cls(
+            documents=d.get("documents", 0),
+            passages=d.get("passages", 0),
+            has_page_citations=d.get("has_page_citations", False),
+            titles=d.get("titles", []),
+            sample_passages=d.get("sample_passages", []),
+            price_per_search=d.get("price_per_search", 0),
+        )

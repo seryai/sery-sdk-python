@@ -53,6 +53,19 @@ class MachinesUnavailable(SeryError):
         self.failures = failures
 
 
+class InsufficientTokens(SeryError):
+    """402 — the key's balance cannot cover the product's price."""
+
+
+class ProductNotFound(SeryError):
+    """404 — no product with that hash."""
+
+
+class ProductUnavailable(SeryError):
+    """409 — the product has nothing published yet, or a table's snapshot
+    is missing."""
+
+
 class APIError(SeryError):
     """Any other non-2xx response. Carries the status code and raw body."""
 
@@ -70,10 +83,27 @@ def _detail_message(detail: Any, fallback: str) -> str:
     return fallback
 
 
-def raise_for_response(status_code: int, body: Any) -> None:
+def raise_for_response(status_code: int, body: Any, *, product: bool = False) -> None:
     """Translate a non-2xx (status_code, parsed body) into the right
-    exception. ``body`` is the decoded JSON (usually ``{"detail": …}``)."""
+    exception. ``body`` is the decoded JSON (usually ``{"detail": …}``).
+
+    Product endpoints share status codes with the mesh API but mean
+    different things by them, so product calls pass ``product=True``.
+    """
     detail: Any = body.get("detail") if isinstance(body, dict) else body
+
+    if product:
+        if status_code == 401:
+            raise AuthError(_detail_message(detail, "Authentication failed"))
+        if status_code == 400:
+            raise QueryError(_detail_message(detail, "Bad query"))
+        if status_code == 402:
+            raise InsufficientTokens(_detail_message(detail, "Insufficient tokens"))
+        if status_code == 404:
+            raise ProductNotFound(_detail_message(detail, "Product not found"))
+        if status_code == 409:
+            raise ProductUnavailable(_detail_message(detail, "Product is not available"))
+        raise APIError(status_code, body)
 
     if status_code == 401:
         raise AuthError(_detail_message(detail, "Authentication failed"))
